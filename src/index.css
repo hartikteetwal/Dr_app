@@ -56,3 +56,10 @@
         opacity: 0.5;
     }
 }
+
+@media (max-width:740px) {
+    .active p{
+        color: white;
+        background-color: #5f6fff;
+    }
+}
