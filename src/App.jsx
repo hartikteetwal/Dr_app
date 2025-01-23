@@ -10,6 +10,8 @@ import MyAppointments from './pages/MyAppointments'
 import Appointment from './pages/Appointment'
 import Navbar from './component/Navbar'
 import Footer from './component/Footer'
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css'; 
 
 const App = () => {
   return (
@@ -27,6 +29,7 @@ const App = () => {
         <Route path='/appointment/:docId' element={<Appointment/>}/>
       </Routes>
       <Footer/>
+      <ToastContainer icon={false} />
     </div>
   )
 }
