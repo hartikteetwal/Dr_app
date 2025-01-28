@@ -11,7 +11,7 @@ const Appointment = () => {
   const navigate = useNavigate()
 
   const {docId} = useParams()
-  const {doctors,currencySymbol,backendUrl,token,getDoctorData} = useContext(AppContext)
+  const {doctors,currencySymbol,backendUrl,token,getDoctorsData} = useContext(AppContext)
 
   const daysOfWeek = ['SUN','MON','TUE','WED','THU','FRI','SET']
 
@@ -55,13 +55,24 @@ const Appointment = () => {
       let timeSlots = []
 
       while(currentDate<endTime){
-        let formatedTime = currentDate.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+        let formatedTime = currentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        
+        let day = currentDate.getDate()
+        let month = currentDate.getMonth() + 1
+        let year = currentDate.getFullYear()
 
-        // add slot to array 
-        timeSlots.push({
-          datetime:new Date(currentDate),
-          time:formatedTime
-        })
+        const slotDate = day + "_" + month + "_" + year
+        const slotTime = formatedTime
+
+        const isSlotAvailable = DocInfo.slots_booked[slotDate] && DocInfo.slots_booked[slotDate].includes(slotTime)?false:true
+
+        if (isSlotAvailable) {
+          //  add slot to array
+          timeSlots.push({
+            datetime: new Date(currentDate),
+            time: formatedTime
+          })
+        }
 
         // Increment current time by 30 minutes 
         currentDate.setMinutes(currentDate.getMinutes()+30)
@@ -72,6 +83,7 @@ const Appointment = () => {
 
   useEffect(()=>{
     fetchDocInfo()
+    
   },[doctors,DocInfo,docId])
 
   useEffect(()=>{
@@ -86,30 +98,51 @@ const Appointment = () => {
 
   const BookAppointment = async () => {
     if (!token) {
-      toast.warn("login to book appointment")
-      return navigate("/login")
+      toast.warn("Please login to book an appointment");
+      navigate("/login");
+      return;
     }
+
     try {
-      const date = DocSlots[SlotIndex][0].datetime
+      // Extract the selected date and format it
+      const selectedDate = DocSlots[SlotIndex][0].datetime;
+      const day = selectedDate.getDate();
+      const month = selectedDate.getMonth() + 1;
+      const year = selectedDate.getFullYear();
+      const slotDate = `${day}_${month}_${year}`;
 
-      let day = date.getDate()
-      let month = date.getMonth()+1
-      let year = date.getFullYear()
+      // Make the API call to book the appointment
+      const response = await axios.post(
+        `${backendUrl}/api/user/book-appointment`,
+        { docId, slotDate, slotTime: SlotTime },
+        { headers: { token } }
+      );
 
-      const slotDate = day+"_"+month+"_"+year
-      const { data } = axios.post(backendUrl + "/api/user/book-appointment", { docId, slotDate, "slotTime":SlotTime }, { headers: { token } })
+      const { data } = response;
+
+      // Handle backend responses based on `success` and `message`
       if (data.success) {
-        toast.success(data.message)
-        getDoctorData()
-        navigate("/my-appointment")
+        toast.success(data.message);
+        getDoctorsData(); // Refresh doctor data
+        navigate("/my-apponitments"); // Navigate to user's appointment page
       } else {
-        toast.error(data.message)
+        // If `success` is false, display the error message
+        toast.error(data.message);
       }
     } catch (error) {
-      console.log(error)
-      toast.error(error.message)
+      // Handle errors from the API
+      if (error.response) {
+        // Backend responded with an error status
+        toast.error(error.response.data.message || "Failed to book the appointment.");
+      } else {
+        // Network or unexpected error
+        console.error("Error booking appointment:", error);
+        toast.error("An unexpected error occurred. Please try again.");
+      }
     }
-  }
+  };
+
+
 
 
   return DocInfo && (
